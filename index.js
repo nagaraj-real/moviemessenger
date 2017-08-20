@@ -13,4 +13,6 @@ app.get('/', verificationController);
 app.post('/', messageWebhookController);
 app.post('/apiAi', apiAiWebhookController);
 
-app.listen(5000, () => console.log('Webhook server is listening, port 5000'));
+let port = process.env.PORT || 5000;
+
+app.listen(port, () => console.log('Webhook server is listening, port 5000'));
