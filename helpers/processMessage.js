@@ -7,8 +7,8 @@ const apiAiClient = require('apiai')(API_AI_TOKEN);
 const request = require('request');
 
 
-const sendAttachments= (senderId, imageUri,type) => {
-    return request({
+const sendAttachments = (senderId, imageUri, type) => {
+    request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
         qs: { access_token: FACEBOOK_ACCESS_TOKEN },
         method: 'POST',
@@ -24,39 +24,55 @@ const sendAttachments= (senderId, imageUri,type) => {
     });
 };
 
-const sendTextMessage = (senderId, text) => {
-    return request({
+const sendTextMessage = (senderId, text, quick_replies) => {
+    request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
         qs: { access_token: FACEBOOK_ACCESS_TOKEN },
         method: 'POST',
         json: {
             recipient: { id: senderId },
-            message: { text },
+            message: {
+                text: text,
+                quick_replies: quick_replies
+            }
         }
     });
 };
 
 
-module.exports = (event) => {
+
+
+
+const startOverAction = (senderId,userInfo) => {
+    let text = `Hi ${userInfo.first_name}, I am Movie bot ;-) here to help you with movie info and reviews. Let's get started!!! Enter a movie name`;
+    sendTextMessage(senderId, text)
+}
+
+
+
+module.exports = (event,userInfo) => {
     const senderId = event.sender.id;
     const message = event.message.text;
     const attachments = event.message.attachments;
+    
 
     if (attachments && attachments.length > 0) {
 
-        sendAttachments(senderId, attachments[0].payload.url,attachments[0].type)
+        sendAttachments(senderId, attachments[0].payload.url, attachments[0].type)
 
     } else {
-        
+
         const apiaiSession = apiAiClient.textRequest(message, { sessionId: 'botcube_co' });
 
         apiaiSession.on('response', (response) => {
             const result = response.result.fulfillment.speech;
             const action = response.result.action;
             switch (action) {
-                case 'input.welcome': sendAttachments(senderId, CAT_IMAGE_URL,'image')
+                case 'start.over': startOverAction(senderId,userInfo)
                     break;
-                default: sendTextMessage(senderId, result);
+                case 'input.welcome': sendAttachments(senderId, CAT_IMAGE_URL, 'image')
+                    break;
+                default: sendTextMessage(senderId, result || result.trim() != '' || 'sorry what was that');
             }
         });
 
