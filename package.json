@@ -12,7 +12,8 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start":"node index"
+    "debug":"node --debug-brk index",
+    "start":"node --debug-brk index"
   },
   "repository": {
     "type": "git",
