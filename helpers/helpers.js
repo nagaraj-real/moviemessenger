@@ -18,11 +18,12 @@ let movieInfoTopIndex = 0;
 
 
 
-function listElements(title, subtitle, image_url, buttons) {
+function listElements(title, subtitle, image_url, buttons, default_action) {
     this.title = title;
     this.subtitle = subtitle;
     this.image_url = image_url;
     this.buttons = buttons;
+    this.default_action = default_action;
 }
 
 const sendAttachments = (senderId, imageUri, type) => {
@@ -42,7 +43,7 @@ const sendAttachments = (senderId, imageUri, type) => {
     });
 };
 
-const sendList = (senderId, payload) => {
+const sendTemplate = (senderId, payload,callback) => {
     request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
         qs: { access_token: FACEBOOK_ACCESS_TOKEN },
@@ -57,7 +58,7 @@ const sendList = (senderId, payload) => {
             }
 
         }
-    });
+    },callback);
 };
 
 const sendTextMessage = (senderId, text, quick_replies) => {
@@ -157,6 +158,14 @@ const sendMovieList = (movieInfo, senderId) => {
                 payload: JSON.stringify(payload)
             }
         ]
+        // let defaultaction = {
+        //     type: "web_url",
+        //     url: "https://87c78775.ngrok.io/",
+        //     messenger_extensions: true,
+        //     webview_height_ratio: "tall",
+        //     fallback_url: "https://87c78775.ngrok.io/"
+        // }
+
         elementlist.push(new listElements(result.title, result.overview, MOVIEDB_IMAGE_URL + result.poster_path, buttons));
 
     });
@@ -177,6 +186,7 @@ const sendMovieList = (movieInfo, senderId) => {
         }
     ];
 
+
     let payload = {
         template_type: "list",
         top_element_style: "compact",
@@ -185,11 +195,11 @@ const sendMovieList = (movieInfo, senderId) => {
 
     if ((movieInfoTopIndex + 4) <= movieInfo.results.length) {
         payload.buttons = actionbuttons;
-    }else{
-        currentcontext=null;
+    } else {
+        currentcontext = null;
     }
 
-    sendList(senderId, payload);
+    sendTemplate(senderId, payload);
 
 }
 
@@ -245,7 +255,7 @@ const processMessage = (event, userInfo) => {
                 default: sendTextMessage(senderId, speech || speech.trim() != '' || 'sorry what was that');
             }
             apiaiSession.end();
-            
+
         });
 
         apiaiSession.on('error', error => console.log(error));
@@ -253,13 +263,28 @@ const processMessage = (event, userInfo) => {
     }
 };
 
+const selectMovieSelectionAction =(senderId, id)=>{
+    let selectedMovie=movieInfo.results.find(p=>p.id===id);
+    let elementlist=[];
+    let imageurl=selectedMovie.backdrop_path && selectedMovie.backdrop_path.trim()!=='' ? selectedMovie.backdrop_path:selectedMovie.poster_path;
+    elementlist.push(new listElements(selectedMovie.title, undefined, MOVIEDB_IMAGE_URL + imageurl));
+    let payload = {
+        template_type: "generic",
+        elements:elementlist
+    }
+    sendTemplate(senderId, payload,(err, response, body)=>{
+        sendTextMessage(senderId,selectedMovie.overview)
+    });
+    
+}
+
 const processPostback = (event) => {
     const senderId = event.sender.id;
     const payload = JSON.parse(event.postback.payload);
     const title = event.postback.title;
 
     switch (Object.keys(payload)[0]) {
-        case 'movieselection': sendTextMessage(senderId, payload.movieselection.id);
+        case 'movieselection': selectMovieSelectionAction(senderId, payload.movieselection.id);
             break;
         case 'viewmore': selectMovieViewMoreAction(senderId);
             break;

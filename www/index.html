@@ -1,0 +1,23 @@
+<html>
+
+<head>
+    <script>
+        (function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) { return; }
+            js = d.createElement(s); js.id = id;
+            js.src = "//connect.facebook.com/en_US/messenger.Extensions.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'Messenger'));
+
+        window.extAsyncInit = function () {
+            window.location = 'http://www.google.com'
+        };
+    </script>
+</head>
+
+<body>
+        <h1>test</h1>
+</body>
+
+</html>
