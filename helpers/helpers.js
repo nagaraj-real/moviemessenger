@@ -12,6 +12,10 @@ const request = require('request');
 
 let currentcontext = null;
 
+let movieInfo = {};
+
+let movieInfoTopIndex = 0;
+
 
 
 function listElements(title, subtitle, image_url, buttons) {
@@ -38,7 +42,7 @@ const sendAttachments = (senderId, imageUri, type) => {
     });
 };
 
-const sendList = (senderId, elementList) => {
+const sendList = (senderId, payload) => {
     request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
         qs: { access_token: FACEBOOK_ACCESS_TOKEN },
@@ -48,18 +52,7 @@ const sendList = (senderId, elementList) => {
             message: {
                 attachment: {
                     type: "template",
-                    payload: {
-                        template_type: "list",
-                        top_element_style: "compact",
-                        elements: elementList,
-                        buttons: [
-                            {
-                                title: "View More",
-                                type: "postback",
-                                payload: "payload"
-                            }
-                        ]
-                    }
+                    payload: payload
                 }
             }
 
@@ -104,16 +97,16 @@ const fetchMovie = (moviename, callback) => {
 const startOverAction = (senderId, userInfo) => {
     let text = `Hi ${userInfo.first_name}, I am Movie bot ;-) here to help you with movie info and reviews. Let's get started!!! Enter a movie name`;
     currentcontext = [
-                    {
-                        name: 'start_over-followup',
-                        lifespan: 1
-                    }
+        {
+            name: 'start_over-followup',
+            lifespan: 1
+        }
     ];
     sendTextMessage(senderId, text);
 }
 
 const selectMovieAction = (senderId, speech, params) => {
-    let movieInfo = {};
+
     let movieresults = [];
     if (speech && speech.trim() != '') {
         sendTextMessage(senderId, speech)
@@ -131,30 +124,11 @@ const selectMovieAction = (senderId, speech, params) => {
                 sendTextMessage(senderId, `Sorry I couldn't find any info about ${moviename}.Let's try another movie`);
 
             } else {
-                movieInfo.results=movieInfo.results.filter((res)=>res.title && res.title.trim()!==''
-                && res.overview && res.overview.trim()!==''
-                && res.poster_path && res.poster_path.trim()!=='')
+                movieInfo.results = movieInfo.results.filter((res) => res.title && res.title.trim() !== ''
+                    && res.overview && res.overview.trim() !== ''
+                    && res.poster_path && res.poster_path.trim() !== '')
 
-                movieresults = movieInfo.results.length <= 5 ? movieInfo.results : movieInfo.results.slice(0, 4);
-                let elementlist = [];
-                movieresults.forEach((result) => {
-                    const payload = {
-                        movieselection: {
-                            id: result.id
-                        }
-                    }
-
-                    let buttons = [
-                        {
-                            title: "Select",
-                            type: "postback",
-                            payload: JSON.stringify(payload)
-                        }
-                    ]
-                    elementlist.push(new listElements(result.title, result.overview, MOVIEDB_IMAGE_URL + result.poster_path, buttons));
-
-                })
-                sendList(senderId, elementlist)
+                sendMovieList(movieInfo, senderId);
             }
         })
 
@@ -163,6 +137,78 @@ const selectMovieAction = (senderId, speech, params) => {
 }
 
 
+
+const sendMovieList = (movieInfo, senderId) => {
+    let elementlist = [];
+
+    movieresults = movieInfo.results.length <= 4 ? movieInfo.results : movieInfo.results.slice(movieInfoTopIndex, movieInfoTopIndex + 4);
+
+    movieresults.forEach((result) => {
+        const payload = {
+            movieselection: {
+                id: result.id
+            }
+        }
+
+        let buttons = [
+            {
+                title: "Select",
+                type: "postback",
+                payload: JSON.stringify(payload)
+            }
+        ]
+        elementlist.push(new listElements(result.title, result.overview, MOVIEDB_IMAGE_URL + result.poster_path, buttons));
+
+    });
+    const actionpayload = {
+        viewmore: null
+    }
+
+    let actionbuttons = [{
+        title: "View More",
+        type: "postback",
+        payload: JSON.stringify(actionpayload)
+    }]
+
+    currentcontext = [
+        {
+            name: 'select_movie_name-followup',
+            lifespan: 1
+        }
+    ];
+
+    let payload = {
+        template_type: "list",
+        top_element_style: "compact",
+        elements: elementlist
+    }
+
+    if ((movieInfoTopIndex + 4) <= movieInfo.results.length) {
+        payload.buttons = actionbuttons;
+    }else{
+        currentcontext=null;
+    }
+
+    sendList(senderId, payload);
+
+}
+
+const selectMovieFallbackAction = (senderId, speech) => {
+    if (speech && speech.trim() != '') {
+        sendTextMessage(senderId, speech);
+    } else {
+        sendTextMessage(senderId, `fallback`);
+    }
+}
+
+const selectMovieViewMoreAction = (senderId, speech) => {
+    if (speech && speech.trim() != '') {
+        sendTextMessage(senderId, speech);
+    } else {
+        movieInfoTopIndex = movieInfoTopIndex + 5;
+        sendMovieList(movieInfo, senderId);
+    }
+}
 
 const processMessage = (event, userInfo) => {
     const senderId = event.sender.id;
@@ -181,7 +227,7 @@ const processMessage = (event, userInfo) => {
         const apiaiSession = apiAiClient.textRequest(message, apioptions);
 
         apiaiSession.on('response', (response) => {
-            currentcontext=null;
+            currentcontext = null;
             const speech = response.result.fulfillment.speech;
             const params = response.result.parameters;
             const action = response.result.action;
@@ -192,9 +238,14 @@ const processMessage = (event, userInfo) => {
                     break;
                 case 'select.movie.name': selectMovieAction(senderId, speech, params);
                     break;
+                case 'select.movie.fallback': selectMovieFallbackAction(senderId, speech);
+                    break;
+                case 'select.movie.viewmore': selectMovieViewMoreAction(senderId, speech);
+                    break;
                 default: sendTextMessage(senderId, speech || speech.trim() != '' || 'sorry what was that');
             }
-            //apiaiSession.end();
+            apiaiSession.end();
+            
         });
 
         apiaiSession.on('error', error => console.log(error));
@@ -209,6 +260,10 @@ const processPostback = (event) => {
 
     switch (Object.keys(payload)[0]) {
         case 'movieselection': sendTextMessage(senderId, payload.movieselection.id);
+            break;
+        case 'viewmore': selectMovieViewMoreAction(senderId);
+            break;
+        default: sendTextMessage(senderId, speech || speech.trim() != '' || 'sorry what was that');
     }
 
 
