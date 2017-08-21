@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', verificationController);
 app.post('/', messageWebhookController);
-app.post('/apiAi', apiAiWebhookController);
+app.get('/apiAi', apiAiWebhookController);
 
 let port = process.env.PORT || 5000;
 

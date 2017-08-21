@@ -1,8 +1,11 @@
-const processMessage = require('../helpers/processMessage');
+const helpers = require('../helpers/helpers');
 const FACEBOOK_ACCESS_TOKEN = 'EAAByIfAfYzkBABNUB8eBsVKwp3LwiNagyLIQT9CEOvc2UKE6OsuGOO5VAqUNnVyLUq2IjbvUFaVQcWhWgAkQJ8RKR1OcOLd1G9pfQfMm85pf3Nnoj825V1L5Iv4D9xPqTKQptvA8auXcyhx21aD5iyjLClZAOsZBDbuZBBO3AZDZD';
 
 const request = require('request');
 let userInfo=null;
+
+
+const {processMessage,processPostback}=helpers;
 
 const getUserInfo = (userid, callback) => {
     request({
@@ -25,6 +28,8 @@ module.exports = (req, res) => {
                     } else {                       
                          processMessage(event,userInfo);
                     }
+                }else if(event.postback){
+                    processPostback(event);
                 }
             });
         });
