@@ -230,7 +230,7 @@ const processMessage = (event, userInfo) => {
         sendAttachments(senderId, attachments[0].payload.url, attachments[0].type)
     } else {
         let apioptions = {};
-        apioptions.sessionId = 'moviebot' + event.message.text;
+        apioptions.sessionId = 'moviebot' + event.sender.id;
         if (currentcontext) {
             apioptions.contexts = currentcontext;
         }
