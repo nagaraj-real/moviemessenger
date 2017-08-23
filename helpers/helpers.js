@@ -43,7 +43,7 @@ const sendAttachments = (senderId, imageUri, type) => {
     });
 };
 
-const sendTemplate = (senderId, payload,callback) => {
+const sendTemplate = (senderId, payload, callback) => {
     request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
         qs: { access_token: FACEBOOK_ACCESS_TOKEN },
@@ -58,7 +58,7 @@ const sendTemplate = (senderId, payload,callback) => {
             }
 
         }
-    },callback);
+    }, callback);
 };
 
 const sendTextMessage = (senderId, text, quick_replies) => {
@@ -115,7 +115,10 @@ const selectMovieAction = (senderId, speech, params) => {
         const moviename = params['movie-name'];
         fetchMovie(moviename, (err, response, body) => {
             movieInfo = JSON.parse(body);
-            if (movieInfo.total_results === 0) {
+            movieInfo.results = movieInfo.results.filter((res) => res.title && res.title.trim() !== ''
+                    && res.overview && res.overview.trim() !== ''
+                    && res.poster_path && res.poster_path.trim() !== '')
+            if (movieInfo.results.length === 0) {
                 currentcontext = [
                     {
                         name: 'start_over-followup',
@@ -125,11 +128,13 @@ const selectMovieAction = (senderId, speech, params) => {
                 sendTextMessage(senderId, `Sorry I couldn't find any info about ${moviename}.Let's try another movie`);
 
             } else {
-                movieInfo.results = movieInfo.results.filter((res) => res.title && res.title.trim() !== ''
-                    && res.overview && res.overview.trim() !== ''
-                    && res.poster_path && res.poster_path.trim() !== '')
+                
+                if(movieInfo.results.length ===1) {
+                    selectMovieSelectionAction(senderId,movieInfo.results[0].id)
+                }else if (movieInfo.results.length > 1) {
+                    sendMovieList(movieInfo, senderId)
+                } 
 
-                sendMovieList(movieInfo, senderId);
             }
         })
 
@@ -263,19 +268,19 @@ const processMessage = (event, userInfo) => {
     }
 };
 
-const selectMovieSelectionAction =(senderId, id)=>{
-    let selectedMovie=movieInfo.results.find(p=>p.id===id);
-    let elementlist=[];
-    let imageurl=selectedMovie.backdrop_path && selectedMovie.backdrop_path.trim()!=='' ? selectedMovie.backdrop_path:selectedMovie.poster_path;
+const selectMovieSelectionAction = (senderId, id) => {
+    let selectedMovie = movieInfo.results.find(p => p.id === id);
+    let elementlist = [];
+    let imageurl = selectedMovie.backdrop_path && selectedMovie.backdrop_path.trim() !== '' ? selectedMovie.backdrop_path : selectedMovie.poster_path;
     elementlist.push(new listElements(selectedMovie.title, undefined, MOVIEDB_IMAGE_URL + imageurl));
     let payload = {
         template_type: "generic",
-        elements:elementlist
+        elements: elementlist
     }
-    sendTemplate(senderId, payload,(err, response, body)=>{
-        sendTextMessage(senderId,selectedMovie.overview)
+    sendTemplate(senderId, payload, (err, response, body) => {
+        sendTextMessage(senderId, selectedMovie.overview)
     });
-    
+
 }
 
 const processPostback = (event) => {
