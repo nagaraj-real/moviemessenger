@@ -29,7 +29,14 @@ module.exports = (req, res) => {
                          processMessage(event,userInfo);
                     }
                 }else if(event.postback){
-                    processPostback(event);
+                    if (!userInfo) {
+                        getUserInfo(event.sender.id, (err, response, body) => {
+                            userInfo = JSON.parse(body);
+                            processPostback(event,userInfo);
+                        });
+                    } else {                       
+                         processPostback(event,userInfo);
+                    }
                 }
             });
         });
