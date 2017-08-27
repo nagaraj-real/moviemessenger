@@ -4,7 +4,7 @@ const { listElements, sendTemplate, sendTextMessage, sendAttachments, fetchMovie
 
 const MOVIEDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w500';
 
-const WEBVIEW_URL='https://99de6cda.ngrok.io/webview';
+const WEBVIEW_URL='https://movieinfobot.herokuapp.com/webview';
 
 let movieInfo = {};
 let movieInfoTopIndex = 0;
