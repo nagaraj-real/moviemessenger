@@ -3,15 +3,18 @@
 const CAT_IMAGE_URL = 'https://botcube.co/public/blog/apiai-tutorial-bot/hosico_cat.jpg';
 
 const API_AI_TOKEN = 'ca2d3e98530b4fdbae1b74064d68e769';
+
 const apiAiClient = require('apiai')(API_AI_TOKEN);
 
-let {currentcontext} = require('./commonVar');
+let { currentcontext } = require('./commonVar');
 
 const actionHelpers = require('./actionHelpers');
 const apiFunctionHelpers = require('./apiFunctionHelpers');
 
 const { selectMovieAction, selectMovieFallbackAction, selectMovieViewMoreAction,
-    selectMovieSelectionAction, movieSearchAction, sendWelcomeMessageAction, movieDiscoverAction } = actionHelpers;
+    selectMovieSelectionAction, movieSearchAction, sendWelcomeMessageAction, movieDiscoverAction,
+    movieVideosAction,movieReviewsAction
+} = actionHelpers;
 const { sendTextMessage, sendAttachments } = apiFunctionHelpers;
 
 const processAction = (action, senderId, params, userInfo, payload) => {
@@ -33,6 +36,10 @@ const processAction = (action, senderId, params, userInfo, payload) => {
             break;
         case 'MOVIE_DISCOVER': movieDiscoverAction(senderId);
             break;
+        case 'MOVIE_VIDEOS': movieVideosAction(senderId,params);
+            break;
+        case 'MOVIE_REVIEWS': movieReviewsAction(senderId,params);
+            break;
         default: sendTextMessage(senderId, 'sorry what was that');
     }
 
@@ -51,12 +58,12 @@ const processMessage = (event, userInfo) => {
         let apioptions = {};
         apioptions.sessionId = 'moviebot' + event.sender.id;
         if (currentcontext) {
-            apioptions.contexts = currentcontext;
+            apioptions.contexts = [...currentcontext];
         }
         const apiaiSession = apiAiClient.textRequest(message, apioptions);
-        currentcontext = [];
+        currentcontext.splice(0, currentcontext.length)
         apiaiSession.on('response', (response) => {
-            currentcontext = [];
+            currentcontext.splice(0, currentcontext.length)
             const speech = response.result.fulfillment.speech;
             const params = response.result.parameters;
             const action = response.result.action;
