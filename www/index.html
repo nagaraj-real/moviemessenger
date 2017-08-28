@@ -23,7 +23,7 @@
 
         window.extAsyncInit = function () {
             var vars = getUrlVars();
-            var imdburl=vars['imdburl'];
+            var imdburl = vars['imdburl'];
             console.log(imdburl);
             if (imdburl) {
                 window.location = 'https://www.imdb.com/title/' + imdburl + '/reviews';
@@ -35,7 +35,9 @@
 </head>
 
 <body>
-    <h1>Loading...</h1>
+    <div id="divLoading" style="position:absolute;left:50%;top:50%;transform: translate(-50%, -50%);">
+        <img src="images/loading.gif" alt="loading" style="zoom:0.3">
+    </div>
 </body>
 
 </html>

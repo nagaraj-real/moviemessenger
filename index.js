@@ -11,7 +11,7 @@ const path=require('path');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(express.static('www/public'));
+app.use(express.static(path.join(__dirname,'www/public')));
 
 app.get('/', verificationController);
 

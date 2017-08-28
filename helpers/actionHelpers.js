@@ -4,8 +4,8 @@ const { listElements, sendTemplate, sendTextMessage, sendAttachments, fetchMovie
 
 const MOVIEDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w500';
 
-const WEBVIEW_URL='https://movieinfobot.herokuapp.com/webview';
-
+//const WEBVIEW_URL='https://movieinfobot.herokuapp.com/webview';
+const WEBVIEW_URL = 'https://22a82949.ngrok.io/webview';
 let movieInfo = {};
 let movieInfoTopIndex = 0;
 
@@ -91,11 +91,11 @@ selectMovieSelectionAction = (senderId, id) => {
     fetchMovieDetails(selectedMovie.id, (err, response, body) => {
         let results = JSON.parse(body);
         if (results.imdb_id && results.imdb_id.trim() !== '') {
-            const imdburl=WEBVIEW_URL+"?imdburl="+results.imdb_id;
+            const imdburl = WEBVIEW_URL + "?imdburl=" + results.imdb_id;
             buttons.push({
                 type: "web_url",
                 url: imdburl,
-                title:"View Reviews",
+                title: "View Reviews",
                 messenger_extensions: true,
                 webview_height_ratio: "tall",
                 fallback_url: imdburl
@@ -105,8 +105,8 @@ selectMovieSelectionAction = (senderId, id) => {
         parameters.movie_name = results.title;
         fetchMovieVideos(selectedMovie.id, (err, response, body) => {
             let results = JSON.parse(body).results;
-            let officialTrailerObj = results.filter(p => p.name === 'Official Trailer' && p.site === 'YouTube');
-            let officialTeaserObj = results.filter(p => p.name === 'Official Teaser' && p.site === 'YouTube')
+            let officialTrailerObj = results.filter(p => p.type === 'Trailer' && p.site === 'YouTube');
+            let officialTeaserObj = results.filter(p => p.type === 'Teaser' && p.site === 'YouTube')
             if (officialTrailerObj && officialTrailerObj.length > 0) {
                 quick_replies.push({
                     content_type: "text",
@@ -129,13 +129,16 @@ selectMovieSelectionAction = (senderId, id) => {
                     parameters: parameters
                 }
             );
-            elementlist.push(new listElements(selectedMovie.title, undefined, MOVIEDB_IMAGE_URL + imageurl,buttons));
+            elementlist.push(new listElements(selectedMovie.title, undefined, MOVIEDB_IMAGE_URL + imageurl, buttons));
             let payload = {
                 template_type: "generic",
                 elements: elementlist
             }
             sendTemplate(senderId, payload, (err, response, body) => {
-                sendTextMessage(senderId, selectedMovie.overview, quick_replies)
+                if (quick_replies != [])
+                    sendTextMessage(senderId, selectedMovie.overview, quick_replies)
+                else
+                    sendTextMessage(senderId, selectedMovie.overview)
             });
         });
 
